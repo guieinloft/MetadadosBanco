@@ -49,14 +49,14 @@ def writeDAO(database, table, columns):
         f.write("    def inserir(self" + (", " if len(cnames) > 0 else "") + ", ".join(cnames) + "):\n")
         f.write("        sql = \"insert into " + table + "(" + ", ".join(cnames) +
                 ") values (" + ("%s, " * (len(cnames) - 1)) + "%s)\"\n")
-        f.write("        with conexao.abrir(" + database + ") as con:\n")
+        f.write("        with conexao.abrir(\"" + database + "\") as con:\n")
         f.write(" "*12 + "cur = con.cursor()\n")
         f.write(" "*12 + "cur.execute(sql, (" + ", ".join(cnames) + ("," if len(cnames) == 1 else "") + "))\n\n\n")
         
         # criando busca
         f.write("    def buscar(self, " + ", ".join(pkeys) + "):\n")
         f.write("        sql = \"select * from " + table + "where " + " = %s and ".join(pkeys) + " = %s\"\n")
-        f.write("        with conexao.abrir(" + database + ") as con:\n")
+        f.write("        with conexao.abrir(\"" + database + "\") as con:\n")
         f.write(" "*12 + "cur = con.cursor()\n")
         f.write(" "*12 + "cur.execute(sql, (" + ", ".join(pkeys) + ("," if len(pkeys) == 1 else "") + "))\n")
         f.write(" "*12 + "return " + table.title() + "(")
@@ -73,21 +73,21 @@ def writeDAO(database, table, columns):
             methodspk.append(table[:4] + ".get" + column + "()")
         f.write("    def alterar(self, " + table[:4] + "):\n")
         f.write("        sql = \"update " + table + " set " + " = %s, ".join(notpk) + " = %s where " + " = %s and ".join(pkeys) + " = %s\"\n")
-        f.write("        with conexao.abrir(" + database + ") as con:\n")
+        f.write("        with conexao.abrir(\"" + database + "\") as con:\n")
         f.write(" "*12 + "cur = con.cursor()\n")
         f.write(" "*12 + "cur.execute(sql, (" + ", ".join(methodsnk) + ", " + ", ".join(methodspk) + ("," if len(methodspk) == 1 else "") + "))\n\n\n")
 
         # criando remocao
         f.write("    def remover(self, " + table[:4] + "):\n")
         f.write("        sql = \"delete " + table + " where " + " = %s and ".join(pkeys) + " = %s\"\n")
-        f.write("        with conexao.abrir(" + database + ") as con:\n")
+        f.write("        with conexao.abrir(\"" + database + "\") as con:\n")
         f.write(" "*12 + "cur = con.cursor()\n")
         f.write(" "*12 + "cur.execute(sql, (" + ", ".join(methodspk) + ("," if len(methodspk) == 1 else "") + "))\n\n\n")
 
         # criando buscar todos
         f.write("    def buscartodos(self):\n")
         f.write("        sql = \"select * from " + table + "\"\n")
-        f.write("        with conexao.abrir(" + database + ") as con:\n")
+        f.write("        with conexao.abrir(\"" + database + "\") as con:\n")
         f.write(" "*12 + "cur = con.cursor()\n")
         f.write(" "*12 + "cur.execute(sql)\n")
         f.write(" "*12 + "list" + table[:4] + " = list()\n")
