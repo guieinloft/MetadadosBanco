@@ -34,6 +34,8 @@ def writeDAO(database, table, columns):
     cnames = list()
     pkeys = list()
     notpk = list()
+    autoi = list()
+    cnames = list()
     for column in columns:
         cnames.append(column[0])
         if "PRI" in column[3]:
@@ -55,7 +57,9 @@ def writeDAO(database, table, columns):
                 ") values (" + ("%s, " * (len(cnames) - 1)) + "%s)\"\n")
         f.write("        with conexao.abrir(\"" + database + "\") as con:\n")
         f.write(" "*12 + "cur = con.cursor()\n")
-        f.write(" "*12 + "cur.execute(sql, (" + ", ".join(cnames) + ("," if len(cnames) == 1 else "") + "))\n\n\n")
+        f.write(" "*12 + "cur.execute(sql, (" + ", ".join(cnames) + ("," if len(cnames) == 1 else "") + "))\n")
+        f.write(" "*12 + "con.commit()\n")
+        f.write("\n\n")
         
         # criando busca
         f.write("    def buscar(self, " + ", ".join(pkeys) + "):\n")
@@ -83,14 +87,16 @@ def writeDAO(database, table, columns):
         f.write("        sql = \"update " + table + " set " + " = %s, ".join(notpk) + " = %s where " + " = %s and ".join(pkeys) + " = %s\"\n")
         f.write("        with conexao.abrir(\"" + database + "\") as con:\n")
         f.write(" "*12 + "cur = con.cursor()\n")
-        f.write(" "*12 + "cur.execute(sql, (" + ", ".join(methodsnk) + ", " + ", ".join(methodspk) + ("," if len(methodspk) == 1 else "") + "))\n\n\n")
+        f.write(" "*12 + "cur.execute(sql, (" + ", ".join(methodsnk) + ", " + ", ".join(methodspk) + ("," if len(methodspk) == 1 else "") + "))\n")
+        f.write(" "*12 + "con.commit()\n\n\n")
 
         # criando remocao
         f.write("    def remover(self, " + table[:4] + "):\n")
         f.write("        sql = \"delete from " + table + " where " + " = %s and ".join(pkeys) + " = %s\"\n")
         f.write("        with conexao.abrir(\"" + database + "\") as con:\n")
         f.write(" "*12 + "cur = con.cursor()\n")
-        f.write(" "*12 + "cur.execute(sql, (" + ", ".join(methodspk) + ("," if len(methodspk) == 1 else "") + "))\n\n\n")
+        f.write(" "*12 + "cur.execute(sql, (" + ", ".join(methodspk) + ("," if len(methodspk) == 1 else "") + "))\n")
+        f.write(" "*12 + "con.commit()\n\n\n")
 
         # criando buscar todos
         f.write("    def buscartodos(self):\n")
@@ -118,8 +124,8 @@ def create_example_file(table, columns):
         f.write("def generate_random_value(data_type):\n")
         f.write("    if data_type.startswith('int'):\n")
         f.write("        return random.randint(1, 1000)\n")
-        f.write("    elif data_type.startswith('decimal'):\n")
-        f.write("        return round(random.uniform(1.0, 1000.0), 2)\n")
+        f.write("    elif data_type.startswith('decimal') or data_type.startswith('float'):\n")
+        f.write("        return round(random.uniform(1.0, 1000.0), 1)\n")
         f.write("    elif data_type.startswith('varchar'):\n")
         f.write("        length = int(data_type.split('(')[1].strip(')'))\n")
         f.write("        return ''.join(random.choices(string.ascii_letters + string.digits, k=min(length, 20)))\n")
@@ -129,17 +135,19 @@ def create_example_file(table, columns):
         f.write("        day = random.randint(1, 28)\n")
         f.write("        return f'{year}-{month:02d}-{day:02d}'\n")
         f.write("    else:\n")
-        f.write("        return None\n\n")
-
-        f.write(f"def main():\n")
-        f.write(f"    dao = {dao_class_name}()\n")
+        f.write("        return None\n\n\n")
         
+        f.write("def main():\n")
+
         # Criar exemplo
         f.write(f"    example = {class_name}(")
         for column in columns:
             f.write(f"generate_random_value('{column[1]}'), ")
         f.seek(f.tell() - 2, 0)
         f.write(")\n\n")
+
+        # Criar DAO
+        f.write(f"    dao = {dao_class_name}()\n")
         
         # Inserir exemplo
         f.write(f"    # Inserir exemplo\n")
@@ -152,13 +160,13 @@ def create_example_file(table, columns):
         
         # Buscar exemplo
         f.write(f"    # Buscar exemplo\n")
-        primary_keys = [column[0] for column in columns if 'PRI' in column[3]]
         f.write(f"    buscado = dao.buscar(")
+        primary_keys = [column[0] for column in columns if 'PRI' in column[3]]
         for pk in primary_keys:
             f.write(f"example.get{pk}(), ")
         f.seek(f.tell() - 2, 0)
         f.write(")\n")
-        f.write(f"    print(f'{{example}} foi buscado')\n\n")
+        f.write(f"    print(f'{{buscado}} foi buscado')\n\n")
 
         # Alterar exemplo
         f.write(f"    # Alterar exemplo\n")
@@ -166,16 +174,16 @@ def create_example_file(table, columns):
         f.write(f"    dao.alterar(example)\n")
         f.write(f"    print(f'{{example}} foi alterado')\n\n")
         
-        # Remover exemplo
-        f.write(f"    # Remover exemplo\n")
-        f.write(f"    dao.remover(example)\n")
-        f.write(f"    print(f'{{example}} foi removido')\n\n")
-        
         # Buscar todos os exemplos
         f.write(f"    # Buscar todos os exemplos\n")
         f.write(f"    todos = dao.buscartodos()\n")
         f.write(f"    for item in todos:\n")
         f.write(f"        print(item)\n\n")
+        
+        # Remover exemplo
+        f.write(f"    # Remover exemplo\n")
+        f.write(f"    # dao.remover(example)\n")
+        f.write(f"    # print(f'{{example}} foi removido')\n\n")
         
         f.write(f"if __name__ == '__main__':\n")
         f.write(f"    main()\n")
